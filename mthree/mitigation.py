@@ -24,7 +24,7 @@ import numpy as np
 import orjson
 import runningman as rm
 from runningman.utils import is_ibm_backend
-
+from runningman.job import RunningManJob
 from mthree.generators import HadamardGenerator
 from mthree.circuits import (
     _tensor_meas_states,
@@ -140,6 +140,7 @@ class M3Mitigation:
         cals_file=None,
         async_cal=True,
         runtime_mode=None,
+        jobs_=None,
     ):
         """Grab calibration data from system.
 
@@ -197,6 +198,7 @@ class M3Mitigation:
             rep_delay=rep_delay,
             initial_reset=initial_reset,
             async_cal=async_cal,
+            jobs_=jobs_
         )
 
         return jobs
@@ -301,6 +303,7 @@ class M3Mitigation:
         rep_delay=None,
         initial_reset=False,
         async_cal=False,
+        jobs_=None
     ):
         """Grab missing calibration data from backend.
 
@@ -406,14 +409,17 @@ class M3Mitigation:
         ] + [trans_qcs[(num_jobs - 1) * circ_slice :]]
         # Do job submission here
         jobs = []
-        for circs in circs_list:
-            _job = self.system.run(
-                circs,
-                shots=shots,
-                rep_delay=self.rep_delay,
-                job_tags=["M3 calibration"],
-            )
-            jobs.append(_job)
+        if jobs_ is None:
+            for circs in circs_list:
+                _job = self.system.run(
+                    circs,
+                    shots=shots,
+                    rep_delay=self.rep_delay,
+                    job_tags=["M3 calibration"],
+                )
+                jobs.append(_job)
+        else:
+            jobs = [RunningManJob(j) for j in jobs_]
 
         # Execute job and cal building in new thread.
         self._job_error = None
